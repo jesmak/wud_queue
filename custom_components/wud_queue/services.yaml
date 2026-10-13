@@ -1,0 +1,11 @@
+enqueue:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          domain: update
+          multiple: true
+stop:
+retry:
+clear:

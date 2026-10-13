@@ -1,0 +1,29 @@
+{
+  "entity": {
+    "sensor": {
+      "queue": {
+        "default": "mdi:tray-full",
+        "state": {
+          "idle": "mdi:tray",
+          "running": "mdi:tray-arrow-down",
+          "stopped": "mdi:tray-remove",
+          "failed": "mdi:tray-alert"
+        }
+      }
+    }
+  },
+  "services": {
+    "enqueue": {
+      "service": "mdi:tray-plus"
+    },
+    "stop": {
+      "service": "mdi:stop"
+    },
+    "retry": {
+      "service": "mdi:restart"
+    },
+    "clear": {
+      "service": "mdi:check-all"
+    }
+  }
+}

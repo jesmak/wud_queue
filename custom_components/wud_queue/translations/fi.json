@@ -1,0 +1,77 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WUD Queue",
+        "description": "Asentaa What's Up Dockerin konttipäivitykset yksi kerrallaan. Asetettavaa ei ole. Jono käyttää päivitysentiteettejä, jotka What's Up Docker on luonut MQTT:n kautta."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "WUD Queue on jo otettu käyttöön."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "queue": {
+        "state": {
+          "idle": "Vapaa",
+          "running": "Käynnissä",
+          "stopped": "Pysäytetty",
+          "failed": "Epäonnistui"
+        },
+        "state_attributes": {
+          "items": {
+            "name": "Päivitykset"
+          },
+          "stopping": {
+            "name": "Pysähtymässä"
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "enqueue": {
+      "name": "Lisää päivitykset jonoon",
+      "description": "Lisää What's Up Dockerin päivitysentiteettien päivitykset jonoon ja käynnistää sen. What's Up Dockerin oma kontti päivitetään viimeisenä.",
+      "fields": {
+        "entity_id": {
+          "name": "Päivitysentiteetit",
+          "description": "What's Up Dockerin päivitysentiteetit, joilla on päivitys odottamassa."
+        }
+      }
+    },
+    "stop": {
+      "name": "Pysäytä jono",
+      "description": "Antaa asennuksessa olevan päivityksen valmistua ja jättää loput asentamatta."
+    },
+    "retry": {
+      "name": "Yritä uudelleen",
+      "description": "Lisää epäonnistuneen päivityksen ja asentamatta jääneet uudelleen jonoon ja käynnistää sen."
+    },
+    "clear": {
+      "name": "Kuittaa",
+      "description": "Tyhjentää jonon, joka ei ole käynnissä. Sama tapahtuu itsestään kymmenen minuuttia jonon päättymisen jälkeen."
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "WUD Queue ei ole käytössä."
+    },
+    "not_wud": {
+      "message": "{entity_id} ei ole What's Up Dockerin päivitysentiteetti."
+    },
+    "nothing_to_install": {
+      "message": "Millään entiteetillä ei ole odottavaa päivitystä, joka ei olisi jo jonossa."
+    },
+    "nothing_to_retry": {
+      "message": "Jonossa ei ole mitään yritettävää uudelleen."
+    },
+    "running": {
+      "message": "Jono on käynnissä. Pysäytä se ensin tai anna sen valmistua."
+    },
+    "stopping": {
+      "message": "Jono on pysähtymässä. Lisää päivitys uudelleen, kun jono on pysähtynyt."
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WUD Queue",
+        "description": "Installs What's Up Docker's container updates one at a time. There is nothing to set up. The queue works on the update entities What's Up Docker has made through MQTT."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "WUD Queue is already set up."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "queue": {
+        "state": {
+          "idle": "Idle",
+          "running": "Running",
+          "stopped": "Stopped",
+          "failed": "Failed"
+        },
+        "state_attributes": {
+          "items": {
+            "name": "Items"
+          },
+          "stopping": {
+            "name": "Stopping"
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "enqueue": {
+      "name": "Queue updates",
+      "description": "Adds the updates of What's Up Docker update entities to the queue and starts it. WUD's own container is installed last.",
+      "fields": {
+        "entity_id": {
+          "name": "Update entities",
+          "description": "What's Up Docker update entities with an update waiting."
+        }
+      }
+    },
+    "stop": {
+      "name": "Stop the queue",
+      "description": "Lets the update being installed finish, and drops the rest."
+    },
+    "retry": {
+      "name": "Retry",
+      "description": "Queues the failed update and the ones that did not run again, and starts the queue."
+    },
+    "clear": {
+      "name": "Clear",
+      "description": "Empties a queue that is not running, as happens by itself ten minutes after it has finished."
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "WUD Queue is not set up."
+    },
+    "not_wud": {
+      "message": "{entity_id} is not an update entity of What's Up Docker."
+    },
+    "nothing_to_install": {
+      "message": "None of the entities has an update waiting that is not already in the queue."
+    },
+    "nothing_to_retry": {
+      "message": "The queue has nothing to retry."
+    },
+    "running": {
+      "message": "The queue is running. Stop it first, or let it finish."
+    },
+    "stopping": {
+      "message": "The queue is stopping. Queue the update again once it has stopped."
+    }
+  }
+}
