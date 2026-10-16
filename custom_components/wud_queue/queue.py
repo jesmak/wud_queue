@@ -26,6 +26,7 @@ from homeassistant.helpers.event import async_call_later, async_track_state_chan
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    AVAILABLE_TIMEOUT,
     DOMAIN,
     DONE,
     EVENT_FAILED,
@@ -41,6 +42,7 @@ from .const import (
     REASON_VERSION,
     RUN_TIMEOUT,
     RUNNING,
+    SELF_UPDATE_HELPER,
     START_TIMEOUT,
     STOPPED,
     TICK,
@@ -61,6 +63,15 @@ def is_wud(state: State | None) -> bool:
     )
 
 
+def _installable(state: State) -> bool:
+    """A WUD entity with an update to install now: not WUD's leftover self-update helper, and not installing already."""
+    return (
+        state.state == STATE_ON
+        and not SELF_UPDATE_HELPER.search(_text(state.attributes.get("name")))
+        and state.attributes.get("in_progress") is not True
+    )
+
+
 def _text(value: Any) -> str:
     return value if isinstance(value, str) else ""
 
@@ -77,6 +88,8 @@ class Target:
     asked: float | None = None
     started: bool = False
     ended: float | None = None
+    # Since when its turn has waited for its entity to be available.
+    waiting: float | None = None
 
 
 @dataclass
@@ -168,7 +181,7 @@ class Queue:
                 )
             assert state is not None
             container = _container(state)
-            if state.state == STATE_ON and container.installed != container.latest and entity_id not in queued:
+            if _installable(state) and container.installed != container.latest and entity_id not in queued:
                 new.append(container)
                 queued.add(entity_id)
         if not new:
@@ -212,7 +225,7 @@ class Queue:
             targets = []
             for t in item.targets:
                 state = self.hass.states.get(t.entity_id)
-                if state is not None and state.state == STATE_ON:
+                if state is not None and _installable(state):
                     # The update may be a newer one by now, and that is what an install gets.
                     container = _container(state)
                     targets.append(Target(t.entity_id, container.installed, container.latest))
@@ -222,6 +235,7 @@ class Queue:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="nothing_to_retry")
         self._cancel_clear()
         self.items = items
+        self._wud_last()
         self._start()
 
     @callback
@@ -289,7 +303,8 @@ class Queue:
         while True:
             item = next((i for i in self.items if i.status in (QUEUED, RUNNING)), None)
             if item is None:
-                self._finish(STOPPED if self.stopping else IDLE)
+                # Everything ran, so a stop asked for during the last item left nothing out.
+                self._finish(IDLE)
                 return
             if item.status == QUEUED:
                 if self.stopping:
@@ -315,14 +330,19 @@ class Queue:
                 t.status = DONE
                 continue
             if t.status == QUEUED:
-                if is_wud(state):
-                    assert state is not None
-                    # update.install gets whatever version is newest at the time, which may be newer than when queued.
-                    container = _container(state)
-                    t.installed, t.target = container.installed, container.latest
-                    if t.installed == t.target:
-                        t.status = DONE
-                        continue
+                if not is_wud(state):
+                    # Home Assistant would drop the install without a word, so it waits for the entity to come back.
+                    t.waiting = t.waiting if t.waiting is not None else now
+                    if now - t.waiting > AVAILABLE_TIMEOUT:
+                        return self._failed(item, t, REASON_START)
+                    return RUNNING
+                assert state is not None
+                # update.install gets whatever version is newest at the time, which may be newer than when queued.
+                container = _container(state)
+                t.installed, t.target = container.installed, container.latest
+                if t.installed == t.target:
+                    t.status = DONE
+                    continue
                 t.status = RUNNING
                 t.asked = now
                 self._install(item, t)
@@ -336,8 +356,8 @@ class Queue:
                 # Unavailable, such as while WUD restarts after updating itself. It comes back.
                 return RUNNING
             assert state is not None
-            in_progress = state.attributes.get("in_progress")
-            if in_progress is True or (isinstance(in_progress, int | float) and not isinstance(in_progress, bool)):
+            # Home Assistant turns a percentage into true, and gives the number as update_percentage.
+            if state.attributes.get("in_progress") is True:
                 t.started = True
                 t.ended = None
             elif t.started and t.ended is None:

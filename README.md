@@ -72,12 +72,12 @@ There are none. The integration has one entry, which adds the queue's sensor and
 
 `sensor.wud_queue`, on a device named WUD Queue, is the queue. Its state is one of:
 
-| State     | Meaning                                                                         |
-| --------- | ------------------------------------------------------------------------------- |
-| `idle`    | Nothing is running. A finished queue stays on show for ten minutes              |
-| `running` | Installing, one item at a time                                                  |
-| `stopped` | Stopped by `wud_queue.stop`. The item being installed finished, the rest didn't |
-| `failed`  | An item failed, and the queue stopped there                                     |
+| State     | Meaning                                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------------------------------- |
+| `idle`    | Nothing is running. A finished queue stays on show for ten minutes                                                    |
+| `running` | Installing, one item at a time                                                                                        |
+| `stopped` | Stopped by `wud_queue.stop`. The item being installed finished, the rest didn't. It stays on show for ten minutes too |
+| `failed`  | An item failed, and the queue stopped there                                                                           |
 
 Its attributes:
 
@@ -98,6 +98,32 @@ An item is one container, or the services of one compose project that run the sa
 version, such as five workers built on one Node image. Its containers are installed one after another, and a stop
 waits for the whole item, so a compose file is never left with only some of its services updated.
 
+### How a failure is recognised
+
+WUD reports no failures. When an install command arrives, it marks the container as installing (`in_progress`), runs
+its trigger, and unmarks it when the trigger ends, whether it worked or not. An install is done once the container is
+on its new version. It fails, with its `reason`, when:
+
+| Reason    | What happened                                                                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `service` | Home Assistant refused to send the install, such as for an entity with no update                                                                                                  |
+| `start`   | WUD didn't mark the container as installing within a minute. WUD is down, or never got the command. Or the container's entity was unavailable for five minutes when its turn came |
+| `version` | WUD finished, but two minutes later the container was still on its old version                                                                                                    |
+| `timeout` | The install ran for half an hour without finishing                                                                                                                                |
+
+After WUD has updated itself, its entity can stay marked as installing for good. The queue goes by the version, so
+that install still counts as done. The mark has a cost, though. Home Assistant refuses to install an update that is marked
+as installing, so the queue leaves WUD's next update out until WUD publishes its container's state again, as it does
+when it restarts. While WUD recreates a container, its entity is briefly unavailable, and the queue waits it out.
+
+
+## Events
+
+| Event                | Fired                                        | Data                                                                                       |
+| -------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `wud_queue_failed`   | When an item fails and the queue stops       | `name`, `entity_ids`, `reason`, `error`, `installed_version`, `target_version`             |
+| `wud_queue_finished` | When the queue ends, done, stopped or failed | `done`, `failed` and `not_run`, the number of items of each, and `items`, as in the sensor |
+
 ## Actions
 
 | Action              | Description                                                                                      |
@@ -107,37 +133,12 @@ waits for the whole item, so a compose file is never left with only some of its 
 | `wud_queue.retry`   | After a failure or a stop, queues the failed item and the ones that didn't run, and starts again |
 | `wud_queue.clear`   | Empties a queue that isn't running, as happens by itself ten minutes after it finishes           |
 
-`enqueue` adds to a running queue, and ignores entities already in it and ones without an update. A service of a
-compose group that is installing joins that group's item. While a stop is waiting for its item to finish, `enqueue`
-is refused, so nothing is queued only to be left out. When the queue
-isn't running, it starts a new one in place of the finished, stopped or failed one. WUD's own container is always
-moved to the end of what is still waiting.
-
-## Events
-
-| Event                | Fired                                        | Data                                                                                       |
-| -------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `wud_queue_failed`   | When an item fails and the queue stops       | `name`, `entity_ids`, `reason`, `error`, `installed_version`, `target_version`             |
-| `wud_queue_finished` | When the queue ends, done, stopped or failed | `done`, `failed` and `not_run`, the number of items of each, and `items`, as in the sensor |
-
-## How a failure is recognised
-
-WUD reports no failures. When an install command arrives, it marks the container as installing (`in_progress`), runs
-its trigger, and unmarks it when the trigger ends, whether it worked or not. An install is done once the container is
-on its new version. It fails, with its `reason`, when:
-
-| Reason    | What happened                                                                                      |
-| --------- | -------------------------------------------------------------------------------------------------- |
-| `service` | Home Assistant refused to send the install, such as for an entity with no update                   |
-| `start`   | WUD didn't mark the container as installing within a minute. WUD is down, or never got the command |
-| `version` | WUD finished, but two minutes later the container was still on its old version                     |
-| `timeout` | The install ran for half an hour without finishing                                                 |
-
-After WUD has updated itself, its entity can stay marked as installing for good. The queue goes by the version, so
-that install still counts as done. The mark has a cost, though. Home Assistant refuses to install an update that is marked
-as installing, so WUD's next update fails with `service` and Home Assistant's message until WUD publishes its
-container's state again, as it does when it restarts. While WUD recreates a container, its entity is briefly unavailable, and the queue
-waits it out.
+`enqueue` adds to a running queue, and ignores entities already in it, ones without an update, ones already being
+installed, such as from Home Assistant's own update dialog, and the container WUD leaves behind when it updates
+itself. A service of a compose group that is installing joins that group's item. While a stop is waiting for its item
+to finish, `enqueue` is refused, so nothing is queued only to be left out. When the queue isn't running, it starts a
+new one in place of the finished, stopped or failed one. WUD's own container is always moved to the end of what is
+still waiting, after a retry too.
 
 ## Examples
 

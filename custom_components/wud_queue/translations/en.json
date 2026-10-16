@@ -62,7 +62,7 @@
       "message": "{entity_id} is not an update entity of What's Up Docker."
     },
     "nothing_to_install": {
-      "message": "None of the entities has an update waiting that is not already in the queue."
+      "message": "None of the entities has an update to install. Each is already queued, already being installed or up to date."
     },
     "nothing_to_retry": {
       "message": "The queue has nothing to retry."

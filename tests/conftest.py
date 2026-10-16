@@ -28,6 +28,7 @@ def wud(
     image: str = "example/app",
     in_progress: bool = False,
     watcher: str = "local",
+    name: str | None = None,
 ) -> None:
     """Writes an update entity shaped like the ones WUD publishes."""
     latest = latest if latest is not None else installed
@@ -37,7 +38,7 @@ def wud(
         "in_progress": in_progress,
         "watcher": watcher,
         "stack": stack,
-        "name": f"{stack}-{service}-1" if stack else service,
+        "name": name or (f"{stack}-{service}-1" if stack else service),
         "display_name": service,
         "image_name": image,
     }

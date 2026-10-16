@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events, async_fire_time_changed
 
 from custom_components.wud_queue.const import (
+    AVAILABLE_TIMEOUT,
     DOMAIN,
     EVENT_FAILED,
     EVENT_FINISHED,
@@ -94,6 +95,71 @@ async def test_puts_wud_last(hass: HomeAssistant, entry: MockConfigEntry, instal
     await enqueue(hass, "update.wud", "update.proxy")
     await enqueue(hass, "update.db")
     assert items(hass) == [("proxy", "running"), ("db", "queued"), ("wud", "queued")]
+
+
+async def test_leaves_out_wuds_self_update_helper(hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall]) -> None:
+    wud(hass, "update.wud", installed="9.4.1", latest="9.5.0", stack="wud", service="wud", image="getwud/wud")
+    # Left behind by WUD's last update of itself, with WUD's image, project and update.
+    wud(
+        hass,
+        "update.wud_helper",
+        installed="9.4.1",
+        latest="9.5.0",
+        stack="wud",
+        service="wud",
+        image="getwud/wud",
+        name="wud-wud-self-update-1791730329826",
+    )
+    await enqueue(hass, "update.wud", "update.wud_helper")
+    state = hass.states.get(SENSOR)
+    assert [e["entity_id"] for e in state.attributes["items"][0]["entities"]] == ["update.wud"]
+
+    with pytest.raises(ServiceValidationError, match="None of the entities"):
+        await enqueue(hass, "update.wud_helper")
+
+
+async def test_leaves_out_a_container_already_installing(hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall]) -> None:
+    # Being installed from Home Assistant's own update dialog, which update.install would refuse to do twice.
+    wud(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy", in_progress=True)
+    wud(hass, "update.db", installed="16.4", latest="16.5", service="db", image="library/postgres")
+    await enqueue(hass, "update.proxy", "update.db")
+    assert items(hass) == [("db", "running")]
+    assert installed(installs) == ["update.db"]
+
+
+async def test_waits_for_a_container_away_at_its_turn(
+    hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    wud(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy")
+    wud(hass, "update.db", installed="16.4", latest="16.5", service="db", image="library/postgres")
+    await enqueue(hass, "update.proxy", "update.db")
+    hass.states.async_set("update.db", "unavailable", {})
+    await install_works(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy")
+
+    # Home Assistant would drop an install for it without a word, so none is sent until it is back.
+    await wait(hass, freezer, AVAILABLE_TIMEOUT - 10)
+    assert installed(installs) == ["update.proxy"]
+    assert items(hass) == [("proxy", "done"), ("db", "running")]
+    wud(hass, "update.db", installed="16.4", latest="16.5", service="db", image="library/postgres")
+    await hass.async_block_till_done()
+    assert installed(installs) == ["update.proxy", "update.db"]
+
+
+async def test_fails_a_container_that_stays_away_at_its_turn(
+    hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    wud(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy")
+    wud(hass, "update.db", installed="16.4", latest="16.5", service="db", image="library/postgres")
+    await enqueue(hass, "update.proxy", "update.db")
+    # Removed while the proxy installs.
+    hass.states.async_remove("update.db")
+    await install_works(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy")
+
+    await wait(hass, freezer, AVAILABLE_TIMEOUT + 10)
+    assert hass.states.get(SENSOR).state == "failed"
+    assert items(hass) == [("proxy", "done"), ("db", "failed")]
+    assert hass.states.get(SENSOR).attributes["items"][1]["reason"] == "start"
+    assert installed(installs) == ["update.proxy"]
 
 
 async def test_wud_replacing_itself_counts_once_its_version_shows(
@@ -195,6 +261,17 @@ async def test_stops_after_the_whole_item(hass: HomeAssistant, entry: MockConfig
     assert [(e.data["done"], e.data["not_run"]) for e in finished] == [(1, 1)]
 
 
+async def test_a_stop_during_the_last_item_leaves_nothing_out(
+    hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall]
+) -> None:
+    wud(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy")
+    await enqueue(hass, "update.proxy")
+    await hass.services.async_call(DOMAIN, "stop", {}, blocking=True)
+    await install_works(hass, "update.proxy", installed="2.10", latest="2.11", service="proxy", image="library/caddy")
+    assert hass.states.get(SENSOR).state == "idle"
+    assert items(hass) == [("proxy", "done")]
+
+
 async def test_retries_what_failed_and_what_did_not_run(
     hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall], freezer: FrozenDateTimeFactory
 ) -> None:
@@ -208,6 +285,23 @@ async def test_retries_what_failed_and_what_did_not_run(
     await hass.async_block_till_done()
     assert items(hass) == [("proxy", "running"), ("db", "queued")]
     assert installed(installs) == ["update.proxy", "update.proxy"]
+
+
+async def test_retries_with_wud_last(
+    hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall], freezer: FrozenDateTimeFactory
+) -> None:
+    wud(hass, "update.wud", installed="9.4.1", latest="9.5.0", stack="wud", service="wud", image="getwud/wud")
+    wud(hass, "update.db", installed="16.4", latest="16.5", service="db", image="library/postgres")
+    await enqueue(hass, "update.wud")
+    # Queued while WUD installs, so it can only go after it.
+    await enqueue(hass, "update.db")
+    assert items(hass) == [("wud", "running"), ("db", "queued")]
+    await wait(hass, freezer, START_TIMEOUT + 10)
+    assert hass.states.get(SENSOR).state == "failed"
+
+    await hass.services.async_call(DOMAIN, "retry", {}, blocking=True)
+    await hass.async_block_till_done()
+    assert items(hass) == [("db", "running"), ("wud", "queued")]
 
 
 async def test_adds_to_a_running_queue_without_doubles(hass: HomeAssistant, entry: MockConfigEntry, installs: list[ServiceCall]) -> None:

@@ -62,7 +62,7 @@
       "message": "{entity_id} ei ole What's Up Dockerin päivitysentiteetti."
     },
     "nothing_to_install": {
-      "message": "Millään entiteetillä ei ole odottavaa päivitystä, joka ei olisi jo jonossa."
+      "message": "Millään entiteetillä ei ole asennettavaa päivitystä. Jokainen on jo jonossa, jo asentumassa tai ajan tasalla."
     },
     "nothing_to_retry": {
       "message": "Jonossa ei ole mitään yritettävää uudelleen."
