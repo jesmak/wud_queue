@@ -1,6 +1,7 @@
 {
   "domain": "wud_queue",
   "name": "WUD Queue",
+  "categories": ["computers_network"],
   "codeowners": ["@jesmak"],
   "config_flow": true,
   "dependencies": [],
