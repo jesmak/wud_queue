@@ -404,10 +404,12 @@ class Queue:
         self._finish(FAILED)
 
     def _finish(self, state: str) -> None:
+        # The containers after a failed one in its own item didn't run either.
         for item in self.items:
             if item.status == QUEUED:
                 item.status = NOT_RUN
-                for target in item.targets:
+            for target in item.targets:
+                if target.status == QUEUED:
                     target.status = NOT_RUN
         self.state = state
         self.stopping = False

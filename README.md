@@ -116,7 +116,6 @@ that install still counts as done. The mark has a cost, though. Home Assistant r
 as installing, so the queue leaves WUD's next update out until WUD publishes its container's state again, as it does
 when it restarts. While WUD recreates a container, its entity is briefly unavailable, and the queue waits it out.
 
-
 ## Events
 
 | Event                | Fired                                        | Data                                                                                       |
@@ -180,9 +179,9 @@ a template condition on the same list to skip those nights quietly.
 
 ## Data
 
-Everything comes from the update entities WUD publishes over MQTT. The integration reads their installed and latest
-versions, whether an install is running, and the compose project, service and image WUD adds as attributes. The integration fetches
-nothing and talks to WUD only through `update.install`. The queue isn't kept over a restart of Home Assistant, as
+Everything comes from the update entities WUD publishes over MQTT. The integration reads whether each has an update,
+its installed and latest versions, whether an install is running, and the watcher, compose project, service, image and
+names WUD adds as attributes. The integration fetches nothing and talks to WUD only through `update.install`. The queue isn't kept over a restart of Home Assistant, as
 what WUD did meanwhile can't be told, and a wrong guess would run an install twice.
 
 ## Translating

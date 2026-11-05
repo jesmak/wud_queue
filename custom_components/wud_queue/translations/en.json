@@ -59,10 +59,10 @@
       "message": "WUD Queue is not set up."
     },
     "not_wud": {
-      "message": "{entity_id} is not an update entity of What's Up Docker."
+      "message": "{entity_id} is not an update entity of What's Up Docker, or it is unavailable right now."
     },
     "nothing_to_install": {
-      "message": "None of the entities has an update to install. Each is already queued, already being installed or up to date."
+      "message": "None of the entities has an update to install now. Each is already queued or being installed, has no update waiting, or is the container What's Up Docker leaves behind when it updates itself."
     },
     "nothing_to_retry": {
       "message": "The queue has nothing to retry."

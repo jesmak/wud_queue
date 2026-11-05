@@ -59,10 +59,10 @@
       "message": "WUD Queue ei ole käytössä."
     },
     "not_wud": {
-      "message": "{entity_id} ei ole What's Up Dockerin päivitysentiteetti."
+      "message": "{entity_id} ei ole What's Up Dockerin päivitysentiteetti, tai se ei ole juuri nyt käytettävissä."
     },
     "nothing_to_install": {
-      "message": "Millään entiteetillä ei ole asennettavaa päivitystä. Jokainen on jo jonossa, jo asentumassa tai ajan tasalla."
+      "message": "Millään entiteetillä ei ole nyt asennettavaa päivitystä. Jokainen on jo jonossa tai asentumassa, ilman odottavaa päivitystä tai What's Up Dockerin itsepäivityksestä jäänyt kontti."
     },
     "nothing_to_retry": {
       "message": "Jonossa ei ole mitään yritettävää uudelleen."
