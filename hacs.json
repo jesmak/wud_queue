@@ -1,5 +1,7 @@
 {
   "name": "WUD Queue",
   "render_readme": true,
+  "zip_release": true,
+  "filename": "wud_queue.zip",
   "homeassistant": "2026.9.3"
 }

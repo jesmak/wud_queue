@@ -3,7 +3,7 @@
 Home Assistant integration that installs What's Up Docker's container updates one at a time, notices when one fails,
 and tells automations about it.
 
-[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![Marketplace][marketplace-shield]][marketplace] [![License][license-shield]](LICENSE)
+[![GitHub Release][releases-shield]][releases] [![GitHub Release Date][release-date-shield]][releases] [![Downloads][downloads-shield]][releases] [![Marketplace][marketplace-shield]][marketplace] [![License][license-shield]](LICENSE)
 
 <img src="https://raw.githubusercontent.com/jesmak/wud_queue/main/docs/images/dashboard-light.png#gh-light-mode-only" width="560" alt="The WUD Queue card on a dashboard with a queue running, one container updated, a group of services updating and two containers queued">
 <img src="https://raw.githubusercontent.com/jesmak/wud_queue/main/docs/images/dashboard-dark.png#gh-dark-mode-only" width="560" alt="The WUD Queue card on a dashboard with a queue running, one container updated, a group of services updating and two containers queued">
@@ -221,6 +221,7 @@ MIT, see [LICENSE](LICENSE).
 [releases-shield]: https://img.shields.io/github/release/jesmak/wud_queue.svg?style=for-the-badge
 [release-date-shield]: https://img.shields.io/github/release-date/jesmak/wud_queue?style=for-the-badge
 [releases]: https://github.com/jesmak/wud_queue/releases
+[downloads-shield]: https://img.shields.io/github/downloads/jesmak/wud_queue/total.svg?style=for-the-badge
 [marketplace-shield]: https://img.shields.io/badge/Marketplace-Custom-orange.svg?style=for-the-badge
 [marketplace]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=jesmak&repository=wud_queue&category=integration
 [license-shield]: https://img.shields.io/github/license/jesmak/wud_queue.svg?style=for-the-badge
