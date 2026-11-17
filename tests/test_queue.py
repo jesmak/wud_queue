@@ -9,7 +9,7 @@ import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import Event, HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events, async_fire_time_changed
+from pytest_homeassistant.common import MockConfigEntry, async_capture_events, async_fire_time_changed
 
 from custom_components.wud_queue.const import (
     AVAILABLE_TIMEOUT,
